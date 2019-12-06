@@ -1,0 +1,695 @@
+---
+title: "Clustering methods. Main clustering algorithms"
+author:
+- name: Gabriel Ungureanu (Gr 406)
+- name: Petru Bodea (Gr 406)
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: 
+  html_document:
+    highlight: pygments
+params:
+  unix: 1
+  unixPath: "/Users/pbodea/stuff/fmi/data-mining&kd/proiect/img/"
+  windowsPath: "C:/Users/Gaby/Desktop/proiect r/img/"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(include = TRUE, echo = TRUE)
+```
+
+
+## **Clustering Distance Measures**
+
+
+The classification of observations into groups requires some methods for computing
+the distance or the (dis)similarity between each pair of observations. The result of
+this computation is known as a dissimilarity or distance matrix.
+
+The classical methods for distance measures are Euclidean and Manhattan distances.
+`r params$unix`
+<img src= "`r ifelse(params$unix, params$unixPath, params$windowsPath)`/1.png" style="margin-left: 15%" width="50%" height="50%"/>
+
+#### **Manhatan Distance:**
+
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`2.png" width="30%" height="30%"/>
+</center>
+
+Other dissimilarity measures exist such as correlation-based distances, which is
+widely used for gene expression data analyses
+
+There are multiple types of correlation methods , such as:
+
+#### 1.	Pearson correlation distance, which measures the degree of a linear relationship between two profiles .##
+
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`3.png" width="50%" height="50%"/>
+</center>
+
+#### 2.	Eisen cosine correlation distance, which is a special type of Pearson correlation where median values for both x and y are 0 .
+
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`4.png" width="40%" height="40%"/>
+</center>
+
+#### 3.	Spearman correlation distance is a correlation method that computes the correlation between the rank of x and y .##
+
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`5.png" width="50%" height="50%"/>
+</center>
+
+#### 4.	Kendall correlation distance ##  is a method that measures the correspondence between the ranking of x and y variables . The total number of possible pairings of x with y observations isn(n???1)/2, where n is the size of x and y. Begin by ordering the pairs by the x values.If x and y are correlated, then they would have the same relative rank orders. Now, for each yi, count the number of yj > yi (concordant pairs (c)) and the number of yj < yi (discordant pairs (d)).
+
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`6.png" width="40%" height="40%"/>
+</center>
+
+Pearson correlation method is parametric and depends on the distribution of the data , on the other hand The Kendal and Spearman correlations are non-parametric and they are used to perform rank based correlation analysis.
+
+Depending on the type of data and the question the researcher questions we can use the right type of distance measures .
+
+The value of distance measures is intimately related to the scale on which measurements
+are made, therefore variables are often scaled  before we begin our observation.
+
+
+### **The standardization of data**
+
+The standardization of data is an approach widely used in the context of gene expression
+data analysis before clustering. We might also want to scale the data when the mean
+and/or the standard deviation of variables are largely different.
+
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`7.png" width="30%" height="30%"/>
+</center>
+
+The R base function **scale()** can be used to standardize the data. 
+It takes a numeric matrix as an input and performs the scaling on the columns
+
+```{r}
+data("USArrests")       # Loading the data set
+set.seed(123)
+ss <- sample(1:50, 15)
+df <- USArrests[ss, ]
+df.scaled <- scale(df)
+#View(df.scaled)
+```
+
+This will calculate the mean and standard deviation of the entire vector, then "scale" each element by those values by subtracting the mean and dividing by the sd
+
+When computing distances we can use a broad array of functions, such as : 
+
+* `dist()` is the base function and it only accepts numeric data input.
+* `get_dist()` is similar to the base function but it also supports correlation based distance measures .
+* `daisy()`function is able to handle other types of variables and the Gower coefficient will be used as the metric.
+
+As an example we can compute the euclidian distance :
+
+```{r}
+#To compute Euclidean distance, you can use the R base dist() function, as follow:
+dist.eucl <- dist(df.scaled, method = "euclidean")
+# Reformat as a matrix
+# Subset the first 3 columns and rows and Round the values
+round(as.matrix(dist.eucl)[1:3, 1:3], 1)
+```
+
+To visualize distance matrices we cand use the function fviz_dist()
+
+Example: 
+
+```{r}
+library(factoextra)
+fviz_dist(dist.eucl)
+```
+
+**Red** indicates high similarity between observations displayed in consecutive order
+
+**Blue** indicates low similarity between observations 
+
+
+## **K-Means Clustering** 
+
+
+**K-means custering** is one of the simplest and popular unsupervised machine learning algorithm for partitioning a given data set into a set of k clusters / groups, where k represents the number of groups pre-specified by the analyst. Objects within the same cluster are as similar as possible (*high intra-class similarity*). By contrast, objects from different clusters are as dissimilar as possible (*low inter-class similarity*). A *centroid* corresponds to the mean of points assigned to the cluster, it might as well be called the center of the cluster.
+
+The standard algorithm is the Hartigan-Wong algorithm (1979), which defines the total within-cluster variation as the sum of squared distances Euclidean distances between items and the corresponding centroid:
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`8.png" width="60%" height="60%"/>
+</center>
+The total within-cluster variation is defined by:
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`9.png" width="40%" height="40%"/>
+</center>
+The *total within-cluster sum of square* should be as small as possible in order to obtain a good clustering.
+
+### **K-means algorithm**
+
+The algorithm follows these steps:
+
+1. The number of clusters (K) is specified by the analyst
+2. A set of k objects should be randomly selected as the initial centers of the cluster.
+3. Assign each observation to their closest centroid, based on the Euclidean distance between the object and the centroid
+4. A new mean of values is calculated for each of the k clusters (update the cluster centroid). The centoid of a Kth cluster is a vector of length p containing the means of all variables for the observations in the kth cluster; p is the number of variables
+5. Iterate steps 3 and 4 until the cluster assignments stop changing or the maximum number of iterations is reached (by default, the maximum number of iterations is 10)
+
+### **Computing k-means clustering in R**
+
+The k-means algorithm should not depend on any arbitrary variable unit, so the data should be scaled using the R function scale():
+
+```{r}
+data("USArrests")       # Loading the data set 
+df <- scale(USArrests)  # Scaling the data
+# View the first 3 rows of the data
+head(df, n = 3)
+```
+
+### **Estimating the optimal number of clusters**
+
+K-means clustering requires the users to specify the number of clusters to be generated. But how does the user know the right number of expected clusters k ?
+
+A simple solution is to compute k-means clustering using different values of clusters k. The wss (within sum of square) is drawn according to the number of clusters. An good plot, with appropiate number of clusters, would resemble a bended knee.
+
+To estimate the optimal number of clusters, the R function *fviz_nbclust()* is being used:
+
+```{r}
+library(factoextra)
+fviz_nbclust(df, kmeans, method = "wss") +
+  geom_vline(xintercept = 4, linetype = 2)
+```
+
+This plot reflects the variance within the clusters, which decreases as k increases. After k=4, additional clusters beyond the fourth have little value.
+
+### **Computing k-means clustering**
+
+It's always recommended to use the *set.seed()* function in order to set R's random number generator, because k-means clustering starts with k randomly selected centroids.
+
+The following code performs k-means clustering with k=4. R will try 25 different random starting assignments and then select the best results (the ones with the lowest within cluster variation):
+
+```{r}
+# Compute k-means with k = 4
+set.seed(123)
+km.res <- kmeans(df, 4, nstart = 25)
+print(km.res)
+```
+
+The printed output shows:
+
+* the cluster means or centers: a matrix, which rows are cluster number (1 to 4)
+and columns are variables
+* the clustering vector: A vector of integers (from 1:k) indicating the cluster to
+which each point is allocated
+
+To compute the mean of each variables by clusters, the following function can be used:
+
+```{r}
+aggregate(USArrests, by=list(cluster=km.res$cluster), mean)
+```
+
+To add the point classifications to the original data:
+
+```{r}
+dd <- cbind(USArrests, cluster = km.res$cluster) 
+head(dd)
+```
+
+### **Accessing the results of kmeans() function**
+
+**kmeans()** function returns the following list of components:
+
+* **cluster**: a vector of integers (from 1 to k), indicating the cluster to which each point is allocated
+* **centers**: a matrix of cluster centers / cluster means
+* **totss**: the total sum of squares (TSS). This measures the total variance in data
+* **withinss**: vector of within-cluster sum of squares
+* **tot.withinss**: total within-cluster sum of squares
+* **betweenss**: the between-cluster sum of squares; *totss - tot.withinss*
+* **size**: the number of observations in each cluster
+
+```{r}
+# Cluster number for each of the observations
+km.res$cluster
+```
+
+```{r}
+ # Cluster size
+km.res$size
+```
+
+```{r}
+ # Cluster means
+km.res$centers
+```
+
+### **Visualizing k-means clusters**
+
+If we have a multi-dimensional data set, a solution is to perform *Principal Component Analysis (PCA)* and to plot data points according to the first two principal components coordinates.
+
+*fviz_cluster()* is used to easily visualize k-means clusters. As arguments, it takes k-means results and the original data. In the resulting plot, observations are represented by points, using principal components if the number of variables is greater than 2. Around each cluster, it is possible to draw concentration ellipse:
+```{r}
+fviz_cluster(km.res, data = df,
+             palette = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+             ellipse.type = "euclid", # Concentration ellipse 
+             star.plot = TRUE, # Add segments from centroids to items 
+             repel = TRUE, # Avoid label overplotting (slow)
+             ggtheme = theme_minimal()
+             )
+```
+
+### **K-means clustering advantages and disadvantages**
+Advantages:
+
+* simple and fast;
+* it can handle large data sets with ease.
+
+Weaknesses:
+
+* it requires the analyst to choose appropriate number of clusters (k) in advance (**solution**: compute k-means for a range of k values, then choose the best k);
+* for every different run of the algorithm on the same data set, different set of initial centers might be choosed. This may lead to different clustering results (**solution**: compute k-means several times with different initial cluster centers and find the run with the lowest total within-cluster sum of square);
+* if the data is rearranged, it is possible to get a different solution.
+
+A good alternative to k-means is PAM, which uses medoids.
+
+### **Summary**
+
+K-means clustering is used to arrange observations into k groups. Each group is represented by the mean value of points in the group / cluster centroid.
+
+The R function *kmeans()* is used to compute k-means algorithm.
+
+After computing kmeans, *fviz_cluster()* is used to visualize the results.
+
+
+
+## **K-Medoids** 
+
+
+K-medoids algorithm is related to the k-means clustering algorithm, which paritioned data sets into k groups of clusters. In k-medoids, each cluster is represented by one of the data point in the cluster (the points are called cluster medoids),
+
+The term medoid refers to an object within a cluster for which average dissimilarity between it and all the other the members of the cluster is minimal. These objects are considered as a representative example of the members of that cluster. This differs from k-means clustering, where the center of a given cluster is calculated as the mean value of all the data points in the cluster.
+
+As in the k-means algorithm, the number of clusters to be generated is given as an input from the user. The **silhouette** method is a good way to determine the optimal number of clusters.
+
+Compared to k-means, the algorithm is less prone to noise and outliers due to the fact that it uses medoids.
+
+The most common k-medoids clustering method is **PAM (Partitioning Around Medoids).
+
+### **PAM algorithm**
+
+The PAM algorithm follows these steps:
+
+1. k objects are selected to become medoids (representative objects among the observations of the data set)
+2. Calculate the dissimilarity matrix if it was not provided
+3. Every object is assigned to the closest medoid
+4. For each cluster, search if any of the object of the cluster decreases the average dissimilarity coefficient. The entity that decreases this coefficient the most will become a medoid for that cluster
+5. If at least one medoid has changed, start from step (3), else end the algorithm
+
+To compute the matrix of dissimilarity, the algorithm can use two metrics:
+
+1. The root sum-of-squares of differences (euclidean distances)
+2. The sum of absolute distances (the Manhattan distance)
+
+### **Computing PAM in R**
+
+#### **Required functions**
+
+The function *pam()* and *pamk()* can be used to compute PAM. *pamk* does not require a user to decide the number of clusters k.
+
+*pam()* function format:
+
+> pam(x, k, metric = "euclidean", stand = FALSE)
+
+* **x**: possible values include:
+        + numeric data matrix / numeric data frame: each row corresponds to an
+observation, and each column corresponds to a variable
+        + dissimilarity matrix: x is typically the output of daisy() or
+dist()
+* **k**: the number of clusters
+* **metric**: euclidean / manhattan
+* **stand**: if true, the variables (columns) in x are standardized before calculating the dissimilarities. Ignored when x is a dissimilarity matrix
+
+#### **Estimating the optimal number of clusters**
+
+The average silhoutte method is used to estimate the optimal number of cluster. The idea is to compute PAM algorithm using different values of clusters k, which will determine the average clusters silhouette.  The quality of the clustering is given by the average silhouette. The optimal number of clusters k is the one that maximize the average silhouette over a range of possible values for k.
+
+*fviz_nbclust()* is a function that estimates the optimal number of clusters:
+
+```{r}
+library(cluster)
+library(factoextra)
+fviz_nbclust(df, pam, method = "silhouette")+
+theme_classic()
+```
+
+It can be seen from the plot above that the optimal number of clusters is 2.
+
+#### **Computing PAM clustering**
+
+The following computes PAM algorithm when k=2:
+
+```{r}
+pam.res <- pam(df, 2) 
+print(pam.res)
+```
+The output displays:
+
+* the matrix: the rows are medoids and the columns are variables;
+* the clustering vector: a vector of integers (from 1 to k) indicating the cluster to which each point is allocated
+
+To add the point classifications to the original data:
+```{r}
+dd <- cbind(USArrests, cluster = pam.res$cluster) 
+head(dd, n = 3)
+```
+
+#### **Accessing to the results of the pam() function**
+
+```{r}
+# Cluster medoids: New Mexico, Nebraska
+pam.res$medoids
+```
+
+```{r}
+ # Cluster numbers
+head(pam.res$clustering)
+```
+
+#### **Visualizing PAM clusters**
+
+*fviz_cluster()* is used to visualize the partitioning results.A scatter plot of data points colored by cluster numbers is drawn . If the data contains more than 2 variables, the Principal Component Analysis (PCA) algorithm is used to reduce the dimensionality of the data. The first two principal dimensions are used to plot the data.
+
+```{r}
+fviz_cluster(pam.res,
+             palette = c("#00AFBB", "#FC4E07"), # color palette
+             ellipse.type = "t", # Concentration ellipse 
+             repel = TRUE, # Avoid label overplotting (slow) 
+             ggtheme = theme_classic()
+             )
+```
+
+### **Summary**
+
+A good alternative to k-means algorithm is k-medoids, where each cluster is represented by a selected object within the cluster. The objects correspond to the most centrally located points within the cluster.
+
+The PAM algorithm requres the user to know the data and to indicate the appropiate number of clusters to be produced. *pam(x, k)* can be used to compute the algorithm. *x* represents the data and *k* is the number of clusters to be generated. For large data sets, *pam()* may need too much memory or computation time. An alternative is *clara()*
+
+After the clustering is performed, *fviz_cluster()* can be used to visualize the results.
+
+
+
+## **CLARA - Clustering Large Applications**
+
+**CLARA** is an extension to k-medoids methods in order to deal with data containing large numbers of objects.
+The clara method considers a small sample of the data and generates an optimal set of medoids using the PAM algorithm.
+
+The algorithm is as follow: 
+
+1. Split randomly the data sets in multiple subsets with fixed size (sampsize)
+2. Compute PAM algorithm on each subset and choose the corresponding k representative objects (medoids). Assign each observation of the entire data set to the closest medoid.
+3. Calculate the mean (or the sum) of the dissimilarities of the observations to their closest medoid. This is used as a measure of the goodness of the clustering.
+4. Retain the sub-data set for which the mean (or sum) is minimal. A further analysis is carried out on the final partition.
+
+
+#### **Computing CLARA in R**
+
+The function *clara()* [cluster package] can be used to compute CLARA.
+
+>clara(x, k, metric = "euclidean", stand = FALSE, samples = 5, sampsize = min(n, 40 + 2 * k), trace = 0, medoids.x = TRUE, keep.data = medoids.x, rngR = FALSE)
+
+* *x*   data matrix or data frame, each row corresponds to an observation, and each column corresponds to a variable. All variables must be numeric. 
+* *K* nteger, the number of clusters. It is required that 0<k<n , n is the number of observations 
+* *Metric* character string specifying the metric to be used for calculating dissimilarities between observations. The currently available options are "euclidean", "manhattan", and "jaccard".
+* *Stand* Logical, indicating if the measurements in x are standardized before calculating the dissimilarities. Measurements are standardized for each variable (column), by subtracting the variable's mean value and dividing by the variable's mean absolute deviation.
+* *samples* Integer, number of samples to be drawn from the dataset.
+* *sampsize* Integer, number of observations in each sample. sampsize should be higher than the number of clusters (k) and at most the number of observations (n = nrow(x)).
+* *trace* Integer indicating a trace level for diagnostic output during the algorithm.
+* *medoids.x* Logical indicating if the medoids should be returned, identically to some rows of the input data x. If FALSE, keep.data must be false as well, and the medoid indices, i.e., row numbers of the medoids will still be returned (i.med component), and the algorithm saves space by needing one copy less of x.
+* *keep.data*: Logical indicating if the (scaled if stand is true) data should be kept in the result. Setting this to FALSE saves memory (and hence time), but disables clusplot()ing of the result. Use medoids.x = FALSE to save even more memory.
+* *rngR*: Logical indicating if R's random number generator should be used instead of the primitive clara()-builtin one. If true, this also means that each call to clara() returns a different result - though only slightly different in good situations.
+
+To estimate the optimal number of clusters in your data, it's possible to use the
+average silhouette method as described in PAM
+
+```{r}
+library(cluster)
+
+fviz_nbclust(df, clara, method = "silhouette")+
+theme_classic()
+```
+
+#### Visualizing CLARA clusters
+
+To visualize the partitioning results, we'll use the function fviz_cluster() ,it draws a scatter plot of data points colored by cluster numbers 
+
+```{r}
+# Compute CLARA
+clara.res <- clara(df, 2, samples = 50, pamLike = TRUE)
+
+fviz_cluster(clara.res,
+             palette = c("#00AFBB", "#FC4E07"), # color palette
+             ellipse.type = "t", # Concentration ellipse
+             geom = "point", pointsize = 1,
+             ggtheme = theme_classic()
+             )
+```
+
+
+ 
+## **Agglomerative Clustering**
+
+The agglomerative clustering starts by treating each object as a singleton cluster until they are merged into one cluster containing all objects.
+The result of this tree based representation is called a dendogram
+
+<center>
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`12.png"/>
+</center>
+
+The steps are as follows:
+
+1. Preparing the data
+2. Computing (dis)similarity information between every pair of objects in the dataset.
+3. Using linkage function to group objects into hierarchical cluster tree, based on the distance information generated at step 1 Objects/clusters that are in close proximity are linked together using the linkage function.
+4. Determining where to cut the hierarchical tree into clusters. This creates a partition of the data.
+
+
+``` {r}
+# Load the data
+data("USArrests")
+# Standardize the data
+df <- scale(USArrests)
+# Show the first 6 rows
+head(df, nrow = 6)
+```
+
+#### Dendogram
+
+Dendrograms correspond to the graphical representation of the hierarchical tree generated by the function hclust().
+
+```{r}
+# Load data
+data(USArrests)
+# Compute distances and hierarchical clustering
+dd <- dist(scale(USArrests), method = "euclidean")
+hc <- hclust(dd, method = "ward.D2")
+plot(hc)
+```
+
+
+In the dendrogram displayed above, each leaf corresponds to one object. As we move
+up the tree, objects that are similar to each other are combined into branches, which
+are themselves fused at a higher height.
+
+
+The vertical distance between two clusters is called cophenetic distance.
+
+The R base function cophenetic() can be used to compute the cophenetic distances for
+hierarchical clustering.
+
+```{r}
+# Compute the dissimilarity matrix
+# df = the standardized data
+res.dist <- dist(df, method = "euclidean")
+res.hc <- hclust(d = res.dist, method = "ward.D2")
+# Compute cophentic distance
+res.coph <- cophenetic(res.hc)
+# Correlation between cophenetic distance and
+# the original distance
+cor(res.dist, res.coph)
+```
+
+#### **Cutting the dendrogram into different groups**
+
+One of the problems with hierarchical clustering is that, it does not tell us how many clusters there are, or where to cut the dendrogram to form clusters.
+
+We can use the function cutree() to cut a tree by specifying either the height or the number of groups desired.
+
+```{r}
+# Cut tree into 4 groups
+grp <- cutree(res.hc, k = 4)
+head(grp, n = 4)
+```
+
+In order to visualize the result in a scatter plot we can use the function fviz_cluster()
+
+```{R}
+fviz_dend(res.hc, k = 4, # Cut in four groups
+cex = 0.5, # label size
+k_colors = c("#2E9FDF", "#00AFBB", "#E7B800", "#FC4E07"),
+color_labels_by_k = TRUE, # color labels by groups
+rect = TRUE # Add rectangle around groups
+)
+```
+
+
+
+## **Hierarchical K-Means Clustering**
+
+
+K-means is one of the most popular clustering algorithm, but it has some limitations: the number of clusters must be specified in advance and the initial centroids are selected randomly. As a result, the final k-means clustering is tightly coupled to the initial random selection of cluster centers.
+
+### **The algorithm**
+
+The algorithm follows these steps:
+
+1. Compute hierarchical clustering and cut the tree into k-clusters
+2. Calculate the center / mean of each cluster
+3. Find k-means by using the set of cluster centers as the initial cluster centers
+
+### **R code**
+
+**hkmeans()** gives an easy solution to compute the algorithm:
+
+```{r}
+# Compute hierarchical k-means clustering
+library(factoextra)
+res.hk <-hkmeans(df, 4)
+# Elements returned by hkmeans() 
+names(res.hk)
+```
+
+```{r}
+# Print the results
+res.hk
+```
+
+```{r}
+# Visualize the tree
+fviz_dend(res.hk, cex = 0.6, palette = "jco",
+rect = TRUE, rect_border = "jco", rect_fill = TRUE)
+```
+
+```{r}
+# Visualize the hkmeans final clusters
+fviz_cluster(res.hk, palette = "jco", repel = TRUE, ggtheme = theme_classic())
+```
+
+
+
+## **Density-Based clustering**
+
+
+**DBSCAN** stands for Density-Based Spatial Clustering and Application with Noise and it is used to identify clusters of any shape in a data set containing noise and outliers.
+
+Clusters are dense regions in the data space. They can be easily differenced from the lower density points. The idea is that for each point of a cluster, the neighborhood of a given
+radius has to contain at least a minimum number of points. The clusters can be easily identified in the image below:
+
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`10.png" width="60%" height="60%"/>
+
+### **Why DBSCAN?**
+
+For spherical clusters, it is indicated to use partitioning methods (K-means, PAM clustering) or hierarchical clustering. They work well for compact and well separated clusters and they are also affected by noise and outliers in the data.
+
+However, real life brings up several challanges such as: 
+
+* clusters of arbitrary shape such as those shown in the figure below (oval, linear and “S” shape clusters);
+* many outliers and noise.
+
+<img src="`r ifelse(params$unix, params$unixPath, params$windowsPath)`11.png" width="60%" height="60%"/>
+
+The plot contains 5 clusters and outliers (2 ovales clusters, 2 linear clusters and 1 compact cluster). 
+
+In such conditions, k-means algorithm has problems identifying these clusters. Below is an example of code that computes k-means algorithm on the multishapes data set.
+
+```{r}
+library(factoextra)
+data("multishapes")
+df <- multishapes[, 1:2]
+set.seed(123)
+km.res <- kmeans(df, 5, nstart = 25) 
+fviz_cluster(km.res, df, geom = "point",
+             ellipse= FALSE, 
+             show.clust.cent = FALSE, 
+             palette = "jco", 
+             ggtheme = theme_classic()
+             )
+```
+
+The plot above shows that the k-means method inaccurately identifies 5 clusters.
+
+### **The algorithm**
+
+A density-based cluster is defined as a group of density connected points. It follows these steps:
+
+1. For each point *xi*, compute the distance between *xi* and the other points. Finds all neighbor points within distance *eps* of the starting point (*xi*). Each point, with a neighbor count greater than or equal to MinPts, is marked as core point or visited
+2. For each core point, if it’s not already assigned to a cluster, create a new cluster. Find recursively all its density connected points and assign them to the same cluster as the core point
+3. Iterate through the remaining unvisited points in the data set 
+
+### **Advantages**
+
+1. DBSCAN does not require the user to specify k (the number of clusters to be generated).
+2. Any shape of clusters can be found with DBSCAN, the cluster does not need to be circular.
+3. DBSCAN can identify outliers.
+
+### **Computing DBSCAN**
+
+To visualize DBSCAN using multishapes data set:
+
+```{r}
+# Load the data
+data("multishapes", package = "factoextra") 
+df <- multishapes[, 1:2]
+
+# Compute DBSCAN using fpc package
+library("fpc")
+set.seed(123)
+db <- fpc::dbscan(df, eps = 0.15, MinPts = 5)
+
+# Plot DBSCAN results
+library("factoextra")
+fviz_cluster(db, data = df, 
+             stand = FALSE,
+             ellipse = FALSE, 
+             show.clust.cent = FALSE,
+             geom = "point",
+             palette = "jco", 
+             ggtheme = theme_classic()
+             )
+```
+
+Compared to k-means algorithms, DBSCAN performs better when identifying the correct clusters.
+
+Displaying the results:
+
+```{r}
+print(db)
+```
+
+In the table above, column names are cluster number. Cluster 0 corresponds to outliers (black points in the DBSCAN plot). The function *print.dbscan()* shows a statistic of the number of points belonging to the clusters that are seeds and border points.
+
+```{r}
+# Cluster membership. Noise/outlier observations are coded as 0 
+# A random subset is shown
+db$cluster[sample(1:1089, 20)]
+```
+
+In the R code above, we used *eps = 0.15* and *MinPts = 5*. One limitation of DBSCAN is that it is sensitive to the choice of *eps*, in particular if clusters have different densities. If *eps* is too small, sparser clusters will be identified as noise. If *eps* is too large, denser clusters may be merged together. This implies that, if there are clusters with different local densities, then a single *eps* value may not be enough.
+
+### **Determining the optimal *eps* value**
+
+The idea is to calculate the average of the distances between every point and its k nearest neighbors. The value *k* is specified by the user and corresponds to *MinPts*.
+
+The aim is to find and optimal *eps* (find the "knee" when plotting k-distances in ascending order).
+
+```{r}
+dbscan::kNNdistplot(df, k = 5) 
+abline(h = 0.15, lty = 2)
+ 
+```
+
+The optimal *eps* value is around a distance 0.15.

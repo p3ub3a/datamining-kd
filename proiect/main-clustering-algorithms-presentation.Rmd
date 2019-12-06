@@ -1,0 +1,17 @@
+---
+title: "Clustering methods. Main clustering algorithms"
+author: Team 2 - *assignment 10*
+date: "\t `r format(Sys.time(), '%d %B %Y')`"
+output: slidy_presentation
+params:
+  unix: 1
+  unixPath: "/Users/pbodea/stuff/fmi/data-mining&kd/proiect/img/"
+  windowsPath: "C:/Users/Gaby/Desktop/proiect r/img/"
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(include = TRUE, echo = TRUE)
+```
+
+
+## Structure
